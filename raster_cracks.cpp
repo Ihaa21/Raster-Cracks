@@ -139,17 +139,17 @@ void DrawTriangle(v3 ModelVertex0, v3 ModelVertex1, v3 ModelVertex2,
   
  */
 
-i32 F32ToFp28_4(f32 A)
+i32 F32ToFp24_8(f32 A)
 {
-    i32 Result = i32(roundf(A * powf(2.0f, 4.0f)));
+    i32 Result = i32(roundf(A * powf(2.0f, 8.0f)));
     return Result;
 }
 
-v2i V2ToFp28_4(v2 A)
+v2i V2ToFp24_8(v2 A)
 {
     v2i Result = {};
-    Result.x = F32ToFp28_4(A.x);
-    Result.y = F32ToFp28_4(A.y);
+    Result.x = F32ToFp24_8(A.x);
+    Result.y = F32ToFp24_8(A.y);
 
     return Result;
 }
@@ -185,17 +185,17 @@ void DrawTriangle(clip_vertex Vertex0, clip_vertex Vertex1, clip_vertex Vertex2,
     MaxY = min(GlobalState.FrameBufferHeight - 1, MaxY);
 #endif
 
-    v2i PointA = V2ToFp28_4(PointAF);
-    v2i PointB = V2ToFp28_4(PointBF);
-    v2i PointC = V2ToFp28_4(PointCF);
+    v2i PointA = V2ToFp24_8(PointAF);
+    v2i PointB = V2ToFp24_8(PointBF);
+    v2i PointC = V2ToFp24_8(PointCF);
     
     v2i Edge0 = PointB - PointA;
     v2i Edge1 = PointC - PointB;
     v2i Edge2 = PointA - PointC;
 
-    b32 IsTopLeft0 = (Edge0.x >= 0 && Edge0.y > 0) || (Edge0.x > 0 && Edge0.y == 0);
-    b32 IsTopLeft1 = (Edge1.x >= 0 && Edge1.y > 0) || (Edge1.x > 0 && Edge1.y == 0);
-    b32 IsTopLeft2 = (Edge2.x >= 0 && Edge2.y > 0) || (Edge2.x > 0 && Edge2.y == 0);
+    b32 IsTopLeft0 = (Edge0.y > 0) || (Edge0.x > 0 && Edge0.y == 0);
+    b32 IsTopLeft1 = (Edge1.y > 0) || (Edge1.x > 0 && Edge1.y == 0);
+    b32 IsTopLeft2 = (Edge2.y > 0) || (Edge2.x > 0 && Edge2.y == 0);
     
     f32 BaryCentricDivisor = CrossProduct2d(PointBF - PointAF, PointCF - PointAF);
 
@@ -225,14 +225,14 @@ void DrawTriangle(clip_vertex Vertex0, clip_vertex Vertex1, clip_vertex Vertex2,
         i64 Temp1RowY = i64(Temp1.x) * i64(Edge1.y) - i64(Temp1.y) * i64(Edge1.x);
         i64 Temp2RowY = i64(Temp2.x) * i64(Edge2.y) - i64(Temp2.y) * i64(Edge2.x);
 
-        Edge0RowY = i32(Temp0RowY / 16);
-        Edge1RowY = i32(Temp1RowY / 16);
-        Edge2RowY = i32(Temp2RowY / 16);
+        Edge0RowY = i32(round(f64(Temp0RowY) / 256.0));
+        Edge1RowY = i32(round(f64(Temp1RowY) / 256.0));
+        Edge2RowY = i32(round(f64(Temp2RowY) / 256.0));
     }
 
-    Edge0RowY += IsTopLeft0;
-    Edge1RowY += IsTopLeft1;
-    Edge2RowY += IsTopLeft2;
+    Edge0RowY += IsTopLeft0 ? 0 : -1;
+    Edge1RowY += IsTopLeft1 ? 0 : -1;
+    Edge2RowY += IsTopLeft2 ? 0 : -1;
     
 #if 0
     i32 Edge0RowY = CrossProduct2d(V2(MinX, MinY) + V2(0.5f, 0.5f) - PointA, Edge0);
@@ -251,7 +251,7 @@ void DrawTriangle(clip_vertex Vertex0, clip_vertex Vertex1, clip_vertex Vertex2,
             //if ((Edge0 > 0 || (IsTopLeft0 && Edge0 == 0.0f)) &&
             //    (Edge1 > 0 || (IsTopLeft1 && Edge1 == 0.0f)) &&
             //    (Edge2 > 0 || (IsTopLeft2 && Edge2 == 0.0f)))
-            if (Edge0 > 0 && Edge1 > 0 && Edge2 > 0)
+            if (Edge0 >= 0 && Edge1 >= 0 && Edge2 >= 0)
             {
                 // NOTE: Ми у середині трикутника
                 u32 PixelId = Y * GlobalState.FrameBufferWidth + X;
